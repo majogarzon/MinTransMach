@@ -1,0 +1,85 @@
+---
+title: "Classification of genes-HCA"
+author: "MJG"
+date: "10/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+## Charging libraries
+
+library(gplots)
+library(RColorBrewer)
+library(xlsx)
+
+
+## Data input (matrix obtained from gene orthology analysis)
+## This example works for subcategory: translation since previously matrix was separated for translational subcategories of the genes.
+load("dataset.example.translation.RDa")
+
+# rename rownames with abbreviature of the organisms
+row.names(data_heatmap)=data_heatmap$Organism
+
+# save list of lifestyle in habitat variable
+habitat = as.character(data_heatmap$Habitat)
+
+# we get only counts data so eliminate columns with other info
+data_heatmap=data_heatmap[,-3]
+data_heatmap=data_heatmap[,-2]
+data_heatmap=data_heatmap[,-1]
+
+# save gene names in genera_names variable
+genera_names<-as.character(colnames(data_heatmap))
+
+# create a list of subcategory for drawing colors in heatmap
+subprocess=replicate(length(genera_names), "Translation")
+
+# convert to matrix for hclust algorithm
+M=as.matrix(data_heatmap)
+
+# run hclust algorithms with complete method that finds similar clusters either columns and rows of the matrix (genes and organisms, respectively).
+# for more info, just search for Rhelp tab: "hclust" 
+hc <- hclust(dist(t(M)), method = "complete")
+hr <- hclust(dist(M), method = "complete")
+
+
+# extract (by plot and writing list) the names of the genes that HCA find.
+# as we expected two clusters for genes, we set k=2.
+plot(hc)
+ct<- cutree(hc, k=2)
+
+# Summary of the results, we find 26 genes in cluster 1 and 25 genes in cluster 2.
+table(ct)
+
+#save
+tableclust<- data.frame(ct)
+write.xlsx(tableclust, file="output.HCA.xlsx",sheetName = "Translation",append = TRUE)
+
+
+## Heatmap
+
+# save colors in variables for subprocess and habitat.  
+color.map <- function(subprocess) { ifelse(subprocess =='Translation',"cadetblue2","cyan")}
+grupo_colors <- unlist(lapply(subprocess, color.map))
+color.map_2 <- function(habitat) { ifelse (habitat =='FL', "#1B9E77",ifelse (habitat =='OS' ,"#D95F02",ifelse(habitat =='SS',"#7570B3","wheat2")))}
+grupo_color_2 = unlist(lapply(habitat, color.map_2))
+
+
+# run the heatmap plot and save automatically in tiff with resolution
+tiff(filename = "_HCA_Translation.tiff",
+     width = 20, height = 20, units = "cm", res = 600, compression = "lzw")
+heatmap.2(M,col=colorRampPalette(c("white","cadetblue2")),ColSideColors=grupo_colors
+          , RowSideColors=grupo_color_2,Colv=as.dendrogram(hc),Rowv=as.dendrogram(hr),
+                dendrogram="both", colsep=F,
+		        trace="none", key=TRUE, scale="none", cexRow=0.3,  
+                                cexCol=0.6,keysize = 1, symbreaks=FALSE, symkey=FALSE,   
+                                        density.info="none",sepcolor="white",srtCol=45)
+
+dev.off()
+
+
+```
+
