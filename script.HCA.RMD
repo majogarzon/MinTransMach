@@ -9,8 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 
-## Charging libraries
-
+## Load libraries
 library(gplots)
 library(RColorBrewer)
 library(xlsx)
